@@ -8,7 +8,7 @@ async function parseFile(req, res, options = {}) {
     let ext = options.ext ? options.ext : /jpeg|jpg|png/;
     let field = options.field ? options.field : null;
     if (!field) {
-        return { error: "Please provide fields" }
+        return { error: "Please provide fields", status: 400 }
     }
 
     let file = multer({
@@ -18,7 +18,7 @@ async function parseFile(req, res, options = {}) {
             let check = ext.test(files.mimetype)
             // console.log('i am from fileFilter extension matches with file mimetype(true) or not(false)', check)
             if (!check) {
-                return cb({ error: "This file format is not allowed" })
+                return cb({ error: "This file format is not allowed", status: 400 })
             }
             return cb(null, { data: true })
         }

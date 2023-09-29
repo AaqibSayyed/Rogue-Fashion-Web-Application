@@ -9,15 +9,15 @@ async function sendEmail(mailoptions) {
         // host: 'smtp.gmail.com',
         // port: 587,
         // secure: false,
-        service:'gmail',
+        service: 'gmail',
         auth: {
             user: 'poolking90zeeshan90@gmail.com',
             pass: 'gtoxrouqvimucnpo'
 
             // user: 'joel.lindgren99@ethereal.email',
             // pass: 'zeBX7nwnJeFm9rUDne'
-            
-    }
+
+        }
     })
 
     // let mailoptionsss = {
@@ -41,4 +41,4 @@ async function sendEmail(mailoptions) {
 
 sendEmail()
 
-module.exports={sendEmail}
+module.exports = { sendEmail }

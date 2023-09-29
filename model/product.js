@@ -1,8 +1,7 @@
 const joi = require('joi')
-const { Product } = require('../schema/product_schema')
-const { category, sequelize, Op } = require('../schema/category_schema')
-const { product_categories } = require('../schema/product_categories')
-const { ValidationError } = require('sequelize')
+const Product = require('../schema/productSchema').Product
+const category = require('../schema/categorySchema').Category
+const product_categories = require('../schema/productCategories').ProductCategories
 
 // data validation
 
@@ -40,17 +39,17 @@ async function verifyAddProduct(params) {
 async function modelAddProdocut(params, userData) {
     let check = await verifyAddProduct(params).catch((error) => { return { error } })
     if (!check || (check && check.error)) {
-        return { error: check.error }
-    }
-    
-    let find_prodcut = await Product.findOne({ where: { slug: params.slug } }).then((data) => { return { data } }).catch((error) => { return { error } })
-    console.log('i am from find product',find_prodcut)
-    if (find_prodcut.data) {
-        return { error: "Product already exist" }
+        return { error: check.error, status: 400 }
     }
 
-    if (!find_prodcut || (find_prodcut & find_prodcut.error)) {
-        return { error: find_prodcut.error }
+    let find_prodcut = await Product.findOne({ where: { slug: params.slug } }).catch((error) => { return { error } })
+
+    if (find_prodcut && !find_prodcut.error) {
+        return { error: "Product already exist", status: 409 }
+    }
+
+    else if (find_prodcut && find_prodcut.error) {
+        return { error: find_prodcut.error, status: 500 }
     }
 
     let insert_product = {
@@ -74,11 +73,11 @@ async function modelAddProdocut(params, userData) {
 
 
     let add_product = await Product.create(insert_product).catch((error) => { return { error } })
-    if (add_product.error) {
-        return { error: add_product.error }
+    if (add_product && add_product.error) {
+        return { error: add_product.error, status: 500 }
     }
 
-    return { data: add_product }
+    return { data: add_product, status: 200 }
 }
 
 // update prodict put method
@@ -121,24 +120,24 @@ async function verifyupdateProduct(params) {
 async function modelUpdateProduct(params, bodyData, userData) {
     let check = await verifyupdateProduct(params).catch((error) => { return { error } })
     if (!check || (check && check.error)) {
-        return { error: check.error }
+        return { error: check.error, status: 400 }
     }
 
     //check if product already exist
-    let find_product = await Product.findOne({ where: { id: params.id } }).then((data) => { return { data } }).catch((error) => { return { error } })
-    if (!find_product.data) {
-        return { error: "No product found" }
+    let find_product = await Product.findOne({ where: { id: params.id } }).catch((error) => { return { error } })
+    if (!find_product) {
+        return { error: "No product found", status: 404 }
     }
-    if (find_product.error) {
-        return { error: find_product.error }
+    else if (find_product && find_product.error) {
+        return { error: find_product.error, status: 500 }
     }
 
     let update_product = await Product.update(bodyData, { where: { id: params.id } }).catch((error) => { return { error } })
     if (!update_product || (update_product && update_product.error)) {
-        return { error: update_product.error }
+        return { error: update_product.error, status: 500 }
     }
 
-    return { data: update_product }
+    return { data: update_product, status: 200 }
 }
 
 
@@ -165,26 +164,26 @@ async function verifyDeleteProduct(params) {
 async function modelDeleteProdocut(params, userData) {
     let check = await verifyDeleteProduct(params).catch((error) => { return { error } })
     if (!check || (check && check.error)) {
-        return { error: check.error }
+        return { error: check.error, status: 400 }
     }
 
-    let find_product = await Product.findOne({ where: { id: params.id, name: params.name } }).then((data) => { return { data } }).catch((error) => { return { error } })
-    if (!find_product.data) {
-        return { error: "No product found" }
+    let find_product = await Product.findOne({ where: { id: params.id, name: params.name } }).catch((error) => { return { error } })
+    if (!find_product) {
+        return { error: "No product found", status: 404 }
     }
 
-    if (find_product.error) {
-        return { error: find_product.error }
+    else if (find_product && find_product.error) {
+        return { error: find_product.error, status: 500 }
     }
 
     let delete_product = await Product.update({ is_deleted: 1, is_active: 0, updated_by: userData.id, updatedAt: new Date() },
         { where: { id: params.id, name: params.name } }).catch((error) => { return { error } })
 
     if (!delete_product || (delete_product && delete_product.error)) {
-        return { error: delete_product.error }
+        return { error: delete_product.error, status: 500 }
     }
 
-    return { data: "Product has been deleted successfully" }
+    return { data: "Product has been deleted successfully", status: 200 }
 
 }
 
@@ -210,7 +209,7 @@ async function verifyViewProduct(params) {
 async function modelViewProduct(params) {
     let check = await verifyViewProduct(params).catch((error) => { return { error } })
     if (!check || (check && check.error)) {
-        return { error: check.error }
+        return { error: check.error, status: 500 }
     }
 
     let query = {}
@@ -240,18 +239,18 @@ async function modelViewProduct(params) {
         }
     }
 
-    console.log(query)
+    // console.log(query)
 
-    let find_data = await Product.findAll(query).then((data) => { return { data } }).catch((error) => { return { error } })
-    if (!find_data) {
-        return { error: "No data found" }
+    let find_data = await Product.findAll(query).catch((error) => { return { error } })
+    if (find_data.length === 0) {
+        return { error: "No data found", status: 404 }
     }
 
-    if (find_data.error) {
-        return { error: find_data.error }
+    else if (find_data & find_data.error) {
+        return { error: find_data.error, status: 500 }
     }
 
-    return { data: find_data.data }
+    return { data: find_data, status: 200 }
 }
 
 
@@ -278,31 +277,30 @@ async function verifyRestoreProduct(params) {
 async function modelRestoreProduct(params, userData) {
     let check = await verifyRestoreProduct(params).catch((error) => { return { error } })
     if (!check || (check && check.error)) {
-        return { error: check.error }
+        return { error: check.error, status: 400 }
     }
 
-    let find_product = await Product.findOne({ where: { id: params.id } }).then((data) => { return { data } }).catch((error) => { return { error } })
+    let find_product = await Product.findOne({ where: { id: params.id } }).catch((error) => { return { error } })
 
-    if (!find_product.data) {
-        return { error: "No product found" }
+    if (!find_product) {
+        return { error: "No product found", status: 404 }
     }
 
-    if (find_product.error) {
-        return { error: find_product.error }
+    if (find_product && find_product.error) {
+        return { error: find_product.error, status: 500 }
     }
 
-    if (find_product.data.is_active == 1 && find_product.data.is_deleted == 0) {
-        return { error: "Product is already active" }
+    if (find_product.is_active == 1 && find_product.is_deleted == 0) {
+        return { error: "Product is already active", status: 409 }
     }
 
-    console.log()
     let restore_product = await Product.update({ is_active: 1, is_deleted: 0, updated_by: userData.id, updatedAt: new Date() }, { where: { id: params.id } }).catch((error) => { return { error } })
 
     if (!restore_product || (restore_product && restore_product.error)) {
-        return { error: restore_product.error }
+        return { error: restore_product.error, status: 500 }
     }
 
-    return { data: "Product has been restored successfully" }
+    return { data: "Product has been restored successfully", status: 200 }
 }
 
 
@@ -328,31 +326,31 @@ async function verifyActiveProduct(params) {
 async function modelActiveProduct(params, userData) {
     let check = await verifyActiveProduct(params).catch((error) => { return { error } })
     if (!check || (check && check.error)) {
-        return { error: check.error }
+        return { error: check.error, status: 400 }
     }
 
-    let find_product = await Product.findOne({ where: { id: params.id } }).then((data) => { return { data } }).catch((error) => { return { error } })
-    if (!find_product.data) {
-        return { error: "No product found" }
+    let find_product = await Product.findOne({ where: { id: params.id } }).catch((error) => { return { error } })
+    if (!find_product) {
+        return { error: "No product found", status: 404 }
     }
-    if (find_product.error) {
-        return { error: find_product.error }
-    }
-
-    if (find_product.data.is_deleted == 1) {
-        return { error: "This product cannot be made active as it is already deleted, kindly restore the product" }
+    if (find_product && find_product.error) {
+        return { error: find_product.error, status: 500 }
     }
 
-    if (find_product.data.is_active == 1) {
-        return { error: "Product is already active" }
+    if (find_product.is_deleted == 1) {
+        return { error: "This product cannot be made active as it is already deleted, kindly restore the product", status: 400 }
+    }
+
+    if (find_product.is_active == 1) {
+        return { error: "Product is already active", status: 409 }
     }
 
     let product_active = await Product.update({ is_active: 1, updated_by: userData.id, updatedAt: new Date() }, { where: { id: params.id } }).catch((error) => { return { error } })
     if (!product_active || (product_active && product_active.error)) {
-        return { error: product_active.error }
+        return { error: product_active.error, status: 500 }
     }
 
-    return { data: "Product has been activated" }
+    return { data: "Product has been activated", status: 200 }
 }
 
 //deactive product 
@@ -377,27 +375,27 @@ async function verifyDeactiveProduct(params) {
 async function modelDeactiveProduct(params, userData) {
     let check = await verifyDeactiveProduct(params).catch((error) => { return { error } })
     if (!check || (check && check.error)) {
-        return { error: check.error }
+        return { error: check.error, status: 400 }
     }
 
-    let find_product = await Product.findOne({ where: { id: params.id } }).then((data) => { return { data } }).catch((error) => { return { error } })
-    if (!find_product.data) {
-        return { error: "No product found" }
+    let find_product = await Product.findOne({ where: { id: params.id } }).catch((error) => { return { error } })
+    if (!find_product) {
+        return { error: "No product found", status: 404 }
     }
-    if (find_product.error) {
-        return { error: find_product.error }
+    if (find_product && find_product.error) {
+        return { error: find_product.error, status: 500 }
     }
 
-    if (find_product.data.is_active == 0) {
-        return { error: "Product is already deactive" }
+    if (find_product.is_active == 0) {
+        return { error: "Product is already deactive", status: 409 }
     }
 
     let product_deactive = await Product.update({ is_active: 0, updated_by: userData.id, updatedAt: new Date() }, { where: { id: params.id } }).catch((error) => { return { error } })
     if (!product_deactive || (product_deactive && product_deactive.error)) {
-        return { error: product_deactive.error }
+        return { error: product_deactive.error, status: 500 }
     }
 
-    return { data: "Product has been Deactivated" }
+    return { data: "Product has been Deactivated", status: 200 }
 
 }
 
@@ -423,37 +421,37 @@ async function verifyassign(params) {
 async function modelAssign(params, userData) {
     let check = await verifyassign(params).catch((error) => { return { error } })
     if (!check || (check && check.error)) {
-        return { error: check.error }
+        return { error: check.error, status: 400 }
     }
     //check if product id exist in product table
 
-    let find_pid = await Product.findOne({ where: { id: params.p_id } }).then((data) => { return { data } }).catch((error) => { return { error } })
-    if (!find_pid.data) {
-        return { error: "No product found" }
+    let find_pid = await Product.findOne({ where: { id: params.p_id } }).catch((error) => { return { error } })
+    if (!find_pid) {
+        return { error: "No product found", status: 404 }
     }
-    if (find_pid.error) {
-        return { error: find_pid.error }
+    if (find_pid && find_pid.error) {
+        return { error: find_pid.error, status: 500 }
     }
 
     //check if category id exist in category table
-    let find_category = await category.findAll({ where: { id: params.c_id } }).then((data) => { return { data } }).catch((error) => { return { error } })
-    if (find_category.data.length == 0) {
-        return { error: "No Category found" }
+    let find_category = await category.findAll({ where: { id: params.c_id } }).catch((error) => { return { error } })
+    if (find_category.length === 0) {
+        return { error: "No Category found", status: 404 }
     }
-    if (find_category.error) {
-        return { error: find_category.error }
+    if (find_category && find_category.error) {
+        return { error: find_category.error, status: 500 }
     }
 
     // check if category count provided by user and category count which we get from DB are same or not.
-    if (find_category.data.length != params.c_id.length) {
-        return { error: "Please provide correct category ids" }
+    if (find_category.length != params.c_id.length) {
+        return { error: "Please provide correct category ids", status: 400 }
     }
 
     //delete all existing p_ids from product_categories table
 
     let delete_pid = await product_categories.destroy({ where: { p_id: params.p_id } }).catch((error) => { return { error } })
-    if (delete_pid.error) {
-        return { error: delete_pid.error }
+    if (delete_pid && delete_pid.error) {
+        return { error: delete_pid.error, status: 500 }
     }
 
     //format Data
@@ -467,9 +465,9 @@ async function modelAssign(params, userData) {
 
     let product_categories_insert = await product_categories.bulkCreate(format_insert).catch((error) => { return { error } })
     if (!product_categories_insert || (product_categories_insert && product_categories_insert.error)) {
-        return { error: product_categories_insert.error }
+        return { error: product_categories_insert.error, status: 500 }
     }
-    return { data: product_categories_insert }
+    return { data: product_categories_insert, status: 200 }
 
 }
 
@@ -494,22 +492,22 @@ async function verifysingleProduct(params) {
 async function modelsingleProduct(params) {
     let check = await verifysingleProduct(params).catch((error) => { return { error } })
     if (!check || (check && check.error)) {
-        return { error: check.error }
+        return { error: check.error, status: 400 }
     }
 
     // console.log('i am from params',params)
 
-    let find_data = await Product.findOne({ where: { slug: params.slug } }).then((data) => { return { data } }).catch((error) => { return { error } })
+    let find_data = await Product.findOne({ where: { slug: params.slug } }).catch((error) => { return { error } })
 
     if (!find_data) {
-        return { error: "No data found" }
+        return { error: "No data found", status: 404 }
     }
 
-    if (find_data.error) {
-        return { error: find_data.error }
+    if (find_data && find_data.error) {
+        return { error: find_data.error, status: 500 }
     }
 
-    return { data: find_data.data }
+    return { data: find_data, status: 200 }
 }
 
 
