@@ -8,7 +8,7 @@ Our Fashion Web Application is a dynamic platform designed for fashion enthusias
 
 - User authentication and authorization
 - Extensive product catalog
-- Shopping cart and checkout system
+- Shopping cart
 - User profiles and preferences
-- Order management and history
+
   
